@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style type="text/css">
+			body { background: #000; margin: 0; color: #fff; }
+		</style>
+	</head>
+	<body width="600" height="500">
+		<main>
+			<h1 class="title"></h1>
+			<h2 class="info"></h2>
+			<ul>
+				<li><strong>PLAYED BY</strong>: DJ <span class="dj-name"></span></li>
+				<li><strong>CLEAR TYPE</strong>: <span class="clear-type"></span></li>
+				<li><strong>DJ LEVEL</strong>: <span class="dj-level"></span></li>
+				<li><strong>EX SCORE</strong>: <span class="ex-score"></span></li>
+				<li><strong>MISS COUNT</strong>: <span class="miss-count"></span></li>
+				<li><strong>MAX COMBO</strong>: <span class="max-combo"></span></li>
+				<li><strong>COMBO BREAK</strong>: <span class="combo-break"></span></li>
+			</ul>
+			<h2 class="judgement"></h2>
+			<h3>MODIFIERS:</h3>
+			<span class="modifiers"></span>
+		</main>
+		<script type="text/javascript">
+			setup = function(data) {
+				/* music title & info */
+				document.querySelector('.title').innerHTML = 
+					`${data.music.artist} - ${data.music.title}`;
+
+				let playstyle = data.player.chart.play_style === 1 ? 'SP': 'DP';
+
+				let chart = `${playstyle} ${data.player.chart.difficulty.toUpperCase()} ${data.player.chart.rating}`;
+				let bpm = data.player.chart.bpm_min !== data.player.chart.bpm_max ?
+					`${data.player.chart.bpm_min} ~ ${data.player.chart.bpm_max}`: `${data.player.chart.bpm_min}`;
+
+				document.querySelector('.info').innerHTML = 
+					`${chart} &bullet; ${data.player.chart.notes} NOTES &bullet; ${bpm} BPM`;
+
+				/* dj name */
+				document.querySelector('.dj-name').innerHTML =
+					`${data.player.dj_name} (${data.player.iidx_id})`;
+
+				/* clear type */
+				let clear_type = data.player.score.clear_type;
+
+				switch (clear_type) {
+					case "clear_noplay":
+						clear_type = 'NO PLAY'; break;
+					case "clear_failed":
+						clear_type = 'FAILED'; break;
+					case "clear_assist":
+						clear_type = 'ASSIST CLEAR'; break;
+					case "clear_easy":
+						clear_type = 'EASY CLEAR'; break;
+					case "clear_clear":
+						clear_type = 'CLEAR'; break;
+					case "clear_hard":
+						clear_type = 'HARD CLEAR'; break;
+					case "clear_ex":
+						clear_type = 'EX HARD CLEAR'; break;
+					case "clear_fullcombo":
+						clear_type = 'FULL COMBO'; break;
+				}
+
+				document.querySelector('.clear-type').innerHTML = clear_type;
+
+				/* dj level */
+				let dj_level = data.player.score.dj_level.split('_');
+				
+				document.querySelector('.dj-level').innerHTML =
+					dj_level[dj_level.length - 1].toUpperCase();
+
+				/* ex score */
+				document.querySelector('.ex-score').innerHTML = data.player.score.ex_score;
+
+				/* miss count */
+				document.querySelector('.miss-count').innerHTML = data.player.score.miss_count;
+				
+				/* max combo */
+				document.querySelector('.max-combo').innerHTML = data.player.score.max_combo;
+
+				/* combo break */
+				document.querySelector('.combo-break').innerHTML = data.player.score.combo_break;
+
+				/* judgement */
+				let judgement = data.player.score.judgement;
+				let timing = data.player.score.timing;
+
+				document.querySelector('.judgement').innerHTML =
+					`${judgement.pgreat} / ${judgement.great} / ${judgement.good} / ${judgement.bad} / ${judgement.poor} (${timing.fast} FAST, ${timing.slow} SLOW)`;
+
+				/* modifiers */
+				document.querySelector('.modifiers').innerHTML =
+					data.player.score.modifiers.join(', ');
+			}
+
+			/* @script */
+		</script>
+	</body>
+</html>

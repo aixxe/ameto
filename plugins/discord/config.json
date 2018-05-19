@@ -1,0 +1,17 @@
+{
+	"client": {
+		"token": "...",
+		"channels": [
+			{"id": "000000000000000000"}
+		],
+		"hotkey": 9
+	},
+	"scorecard": {
+		"style": "base",
+		"output": "cards",
+		"persistent": true
+	},
+	"embed": {
+		"scorecard_only": false
+	}
+}

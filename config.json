@@ -1,0 +1,9 @@
+{
+	"shuriken": {
+		"host": "127.0.0.1",
+		"port": 9989,
+		"debug": true
+	},
+	"plugins": {
+	}
+}
