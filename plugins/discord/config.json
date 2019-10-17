@@ -3,15 +3,49 @@
 		"token": "...",
 		"channels": [
 			{"id": "000000000000000000"}
-		],
-		"hotkey": 9
+		]
+	},
+	"hotkeys": {
+		"submit": 9
+	},
+	"presence": {
+		"enabled": true
 	},
 	"scorecard": {
-		"style": "base",
-		"output": "cards",
-		"persistent": true
+		"enabled": true,
+		"settings": {
+			"style": "base",
+			"directory": "cards",
+			"persistent": true
+		},
+		"options": {
+			"auto_max_pacemaker": true,
+			"hide_score_differential": false,
+			"hide_dead_frame": false
+		}
 	},
-	"embed": {
-		"scorecard_only": false
+	"rich_embed": {
+		"enabled": false,
+		"fields": {
+			"header": true,
+			"footer": true,
+			"music": true,
+			"sp_class": true,
+			"dp_class": true,
+			"play_style": true,
+			"ex_score": true,
+			"dj_level": true,
+			"clear_type": true,
+			"max_combo": true,
+			"miss_count": true,
+			"combo_break": true,
+			"judgement": true,
+			"timing": true,
+			"dead": true,
+			"ranking": true,
+			"rivals": true,
+			"pacemaker": true,
+			"modifiers": true
+		}
 	}
 }

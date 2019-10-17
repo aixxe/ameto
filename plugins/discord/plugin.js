@@ -19,25 +19,46 @@ class Discord {
 		this.p1_score = null;
 		this.p2_score = null;
 
-		this.client = new discordjs.Client({autoReconnect: true});
-		await this.client.login(this.config.client.token);
+		this.connect();
 
 		Ameto.client.on('score', this.score.bind(this));
-		Ameto.client.on('music', this.music.bind(this));
-		Ameto.client.on('state', this.state.bind(this));
 		Ameto.client.on('keypad', this.keypad.bind(this));
 		Ameto.client.on('card.out', this.cardout.bind(this));
+
+		if (this.config.presence.enabled === true) {
+			Ameto.client.on('music', this.music.bind(this));
+			Ameto.client.on('state', this.state.bind(this));
+		}
+	}
+
+	async connect() {
+		if (this.client) {
+			console.log('Reconnecting to Discord..');
+		} else {
+			this.client = new discordjs.Client({autoReconnect: true});
+			this.client.on('error', this.connect.bind(this));
+		}
+
+		try {
+			await this.client.login(this.config.client.token);
+		} catch (error) {
+			console.log('Failed to connect to Discord, retrying in 30 seconds..');
+			return setTimeout(this.connect.bind(this), 30000);
+		}
 	}
 
 	/* Fired when a score is received from the server. The score data is kept in
 	   memory until it is submitted or overwritten by another score. */
 	score(data) {
-		if (data.players.p1)
+		if (!data.players)
+			return;
+		
+		if (data.players.p1 !== undefined)
 			this.p1_score = {
 				music: data.music, player: data.players.p1, timestamp: data.timestamp
 			};
 		
-		if (data.players.p2)
+		if (data.players.p2 !== undefined)
 			this.p2_score = {
 				music: data.music, player: data.players.p2, timestamp: data.timestamp
 			};
@@ -59,16 +80,16 @@ class Discord {
 
 	/* Post the previously saved score when 9 is pressed on the keypad. */
 	keypad(data) {
-		if (data.state[(this.config.client.hotkey || "0")] !== true)
+		if (data.state[(this.config.hotkeys.submit || "0")] !== true)
 			return;
 
 		if (data.player === 0 && this.p1_score !== null) {
-			this.submitAll(this.p1_score);
+			this.submit(this.p1_score);
 			this.p1_score = null;
 		}
 
 		if (data.player === 1 && this.p2_score !== null) {
-			this.submitAll(this.p2_score);
+			this.submit(this.p2_score);
 			this.p2_score = null;
 		}
 	}
@@ -78,13 +99,6 @@ class Discord {
 		   of a score from a previous session. */
 		this.p1_score = null;
 		this.p2_score = null;
-	}
-
-	submitAll(data) {
-		for (let i = this.config.client.channels.length - 1; i >= 0; i--) {
-			let channel = this.config.client.channels[i];
-			this.submit(channel.id, data);
-		}
 	}
 
 	generateEmbed(data) {
@@ -102,16 +116,17 @@ class Discord {
 
 		/* Shorthand variables for convenience. */
 		let player = data.player;
+		let parts = this.config.rich_embed.fields;
 
 		/* Main header text is set to the players DJ name and class. */
 		embed.author.name = `dj ${player.dj_name}`;
 
 		let classes = [];
 		
-		if (player.sp.class !== -1)
+		if (parts.sp_class === true && player.sp.class !== -1)
 			classes.push(`SP ${lib.getClassText(player.sp.class)}`);
 
-		if (player.dp.class !== -1)
+		if (parts.dp_class === true && player.dp.class !== -1)
 			classes.push(`DP ${lib.getClassText(player.dp.class)}`);
 
 		if (classes.length !== 0)
@@ -132,11 +147,8 @@ class Discord {
 		let difficulty = player.chart.difficulty.toUpperCase();
 		let rating = player.chart.rating;
 		
-		embed.fields.push({
-			"name": "PLAY STYLE",
-			"value":  `${style} ${difficulty} ${rating}`,
-			"inline": true
-		});
+		if (parts.play_style === true)
+			embed.fields.push({"name": "PLAY STYLE", "value":  `${style} ${difficulty} ${rating}`, "inline": true});
 
 		/* Current and best EX scores. */
 		let ex_score_text = `${player.score.ex_score}`;
@@ -151,11 +163,8 @@ class Discord {
 			ex_score_text = `${player.score.best_ex_score} ${ex_score_improved} **${ex_score_text}** (${ex_score_difference})`;
 		}
 		
-		embed.fields.push({
-			"name": "EX SCORE",
-			"value": ex_score_text,
-			"inline": true
-		});
+		if (parts.ex_score === true)
+			embed.fields.push({"name": "EX SCORE", "value": ex_score_text, "inline": true});
 
 		/* DJ level -- displayed as the letter grade, current percentage, and
 		   percentage increased or decreased compared to best score. */
@@ -186,11 +195,8 @@ class Discord {
 			dj_level_text = `${dj_level_text} (**${grade_percentage_current}**)`;
 		}
 		
-		embed.fields.push({
-			"name": "DJ LEVEL",
-			"value": dj_level_text,
-			"inline": true
-		});
+		if (parts.dj_level === true)
+			embed.fields.push({"name": "DJ LEVEL", "value": dj_level_text, "inline": true});
 
 		/* Get clear type string and embed color. */
 		let clear_type = lib.clear_type_str(player.score.clear_type);
@@ -207,22 +213,17 @@ class Discord {
 		if (best_clear_type && best_clear_type.text != clear_type.text)
 			clear_type_text = `${best_clear_type.text} ${clear_type_improved} **${clear_type_text}**`;
 		
-		embed.fields.push({
-			"name": "CLEAR TYPE",
-			"value": clear_type_text,
-			"inline": true
-		});
+		if (parts.clear_type === true)
+			embed.fields.push({"name": "CLEAR TYPE", "value": clear_type_text, "inline": true});
 
 		/* Maximum combo. */
-		embed.fields.push({
-			"name": "MAX COMBO",
-			"value": player.score.max_combo,
-			"inline": true
-		});
+		if (parts.max_combo === true)
+			embed.fields.push({"name": "MAX COMBO", "value": player.score.max_combo, "inline": true});
 
 		/* Miss count. */
 		let miss_count_text = player.score.miss_count;
-		if (player.score.miss_count != -1) {
+		
+		if (parts.miss_count === true && player.score.miss_count != -1) {
 			if (player.score.best_miss_count != -1 && player.score.best_miss_count != player.score.miss_count) {
 				let miss_count_improved = (player.score.miss_count < player.score.best_miss_count) ? '▴': '▾';
 				miss_count_text = `${player.score.best_miss_count} ${miss_count_improved} **${miss_count_text}**`;
@@ -232,34 +233,29 @@ class Discord {
 		}
 
 		/* Combo break. */
-		if (player.score.combo_break > 0) {
-			embed.fields.push({
-				"name": "COMBO BREAK",
-				"value": player.score.combo_break,
-				"inline": true
-			});
-		}
+		if (parts.combo_break === true && player.score.combo_break > 0)
+			embed.fields.push({"name": "COMBO BREAK", "value": player.score.combo_break, "inline": true});
 
 		/* Judgement counts ordered from best to worst. */
-		embed.fields.push({
-			"name": "JUDGEMENT",
-			"value": [
-				player.score.judgement.pgreat, player.score.judgement.great,
-				player.score.judgement.good, player.score.judgement.bad,
-				player.score.judgement.poor].join(' / '),
-			"inline": true
-		});
+		if (parts.judgement === true)
+			embed.fields.push({
+				"name": "JUDGEMENT",
+				"value": [ player.score.judgement.pgreat, player.score.judgement.great, player.score.judgement.good,
+						   player.score.judgement.bad, player.score.judgement.poor ].join(' / '),
+				"inline": true
+			});
 
 		/* Fast & slow counts. */
-		embed.fields.push({
-			"name": "TIMING",
-			"value": `${player.score.timing.fast} FAST, ${player.score.timing.slow} SLOW`,
-			"inline": true
-		});
+		if (parts.timing === true)
+			embed.fields.push({
+				"name": "TIMING",
+				"value": `${player.score.timing.fast} FAST, ${player.score.timing.slow} SLOW`,
+				"inline": true
+			});
 
 		/* "Dead" information -- only displayed if the chart was failed before
 		   the end. (e.g. early quit or gauge depletion) */
-		if (clear_type_text === "FAILED" && player.score.dead) {
+		if (parts.dead === true && clear_type_text === "FAILED" && player.score.dead) {
 			embed.fields.push({
 				"name": "DEAD",
 				"value": `MEASURE ${player.score.dead.measure}, NOTE ${player.score.dead.note}`,
@@ -269,7 +265,7 @@ class Discord {
 
 		/* Ranking data -- only present when using an e-AMUSEMENT PASS. May also
 		   require enabling the rival options under "My Theme" on Arcana. */
-		if (player.score.ranking !== undefined) {
+		if (parts.ranking === true && player.score.ranking !== undefined) {
 			let ranking = player.score.ranking;
 			let rival_ranking_text = `—`, shop_ranking_text = `—`;
 
@@ -298,58 +294,170 @@ class Discord {
 			});
 		}
 
-		/* List of known active modifiers. */
-		if (player.score.modifiers && player.score.modifiers.length !== 0) {
+		/* Rival ranking information -- displays a list of your rivals and their
+		   scores relative to your best. (does not show clear types yet..) */
+		if (parts.rivals === true && player.score.rivals !== null) {
+			let rival_text = '';
+
+			for (let i = 0; i < player.score.rivals.length; i++) {
+				let rival = player.score.rivals[i];
+				let position = `${i + 1}.`;
+
+				if (rival.dj_name !== player.dj_name) {
+					let arrow = (rival.ex_score > player.score.ex_score) ? '▴': '▾';
+					let score = `${rival.ex_score - player.score.ex_score}`;
+
+					if (score >= 0)
+						score = `+${score}`;
+
+					rival_text += `${position} ${rival.dj_name} — ${rival.ex_score} **${arrow} ${score}**\n`;
+				} else {
+					rival_text += `**${position} ${rival.dj_name} ・ ${rival.ex_score}**\n`;
+				}
+			}
+
+			embed.fields.push({"name": "RIVALS", "value": rival_text, "inline": false});
+		}
+
+		/* Pacemaker information. */
+		let pacemaker_text = '', rivals = null;
+
+		if (player.rivals)
+			rivals = (player.chart.play_style === 1) ? player.rivals.sp: player.rivals.dp;
+
+		switch (player.score.pacemaker.type) {
+			case 'sg_pacemaker':
+				pacemaker_text = `PACEMAKER ${player.score.pacemaker.custom}%`; break;
+			case 'sg_riva1':
+				pacemaker_text = `DJ ${rivals[0].dj_name}`; break;
+			case 'sg_riva2':
+				pacemaker_text = `DJ ${rivals[1].dj_name}`; break;
+			case 'sg_riva3':
+				pacemaker_text = `DJ ${rivals[2].dj_name}`; break;
+			case 'sg_riva4':
+				pacemaker_text = `DJ ${rivals[3].dj_name}`; break;
+			case 'sg_riva5':
+				pacemaker_text = `DJ ${rivals[4].dj_name}`; break;
+			case 'sg_monly':
+				pacemaker_text = `MY BEST`; break;
+			case 'sg_pacemaker_next':
+				pacemaker_text = 'PACEMAKER NEXT'; break;
+			case 'sg_pacemaker_nextplus':
+				pacemaker_text = 'PACEMAKER NEXT+'; break;
+			case 'sg_pacemaker_aaa':
+				pacemaker_text = 'LV. AAA'; break;
+			case 'sg_pacemaker_aa':
+				pacemaker_text = 'LV. AA'; break;
+			case 'sg_pacemaker_a':
+				pacemaker_text = 'LV. A'; break;
+			case 'sg_riva_ave':
+				pacemaker_text = 'RIVAL AVERAGE'; break;
+			case 'sg_altop':
+				pacemaker_text = 'GLOBAL BEST'; break;
+			case 'sg_alave':
+				pacemaker_text = 'GLOBAL AVERAGE'; break;
+			case 'sg_dantp':
+				pacemaker_text = 'CLASS BEST'; break;
+			case 'sg_danav':
+				pacemaker_text = 'CLASS AVERAGE'; break;
+			case 'sg_lotop':
+				pacemaker_text = 'REGION BEST'; break;
+			case 'sg_loave':
+				pacemaker_text = 'REGION AVERAGE'; break;
+			case 'sg_shop_top':
+				pacemaker_text = 'SHOP TOP'; break;
+			case 'sg_shop_next':
+				pacemaker_text = 'SHOP NEXT'; break;
+		}
+
+		/* Substitute 'RIVAL BEST' for the actual rival name. */
+		if (player.score.pacemaker.type === 'sg_riva_top') {
+			if (player.score.rivals !== undefined) {
+				pacemaker_text = `DJ ${player.score.rivals[0].dj_name.toUpperCase()}`;
+			} else {
+				pacemaker_text = 'RIVAL BEST';
+			}
+		}
+
+		if (parts.pacemaker === true && pacemaker_text !== '') {
+			let pacemaker_diff = player.score.ex_score - player.score.pacemaker.target;
+				pacemaker_diff = (pacemaker_diff >= 0) ? '+' + pacemaker_diff: pacemaker_diff;
+
 			embed.fields.push({
-				"name": "MODIFIERS",
-				"value": player.score.modifiers.join(', '),
+				"name": "PACEMAKER",
+				"value": `${pacemaker_text} **${pacemaker_diff}**`,
 				"inline": false
 			});
 		}
+
+		/* List of known active modifiers. */
+		if (parts.modifiers === true && player.score.modifiers && player.score.modifiers.length !== 0)
+			embed.fields.push({"name": "MODIFIERS", "value": player.score.modifiers.join(', '), "inline": false});
 		
 		/* Append the score timestamp. */
 		embed.timestamp = new Date(data.timestamp * 1000).toISOString();
 
+		/* Disable header and footer. */
+		if (!parts.header) {
+			delete embed.author;
+		}
+
+		if (!parts.music) {
+			delete embed.title;
+			delete embed.description;
+		}
+
+		if (!parts.footer) {
+			delete embed.footer;
+			delete embed.timestamp;
+		}
+
 		return new discordjs.RichEmbed(embed);
 	}
 
-	async submit(channel_id, data) {
-		/* Ensure the target channel is valid. */
-		let channel = this.client.channels.get(channel_id);
-
-		if (!channel)
-			return console.error(`Failed to find channel '${channel}'.`);
-
+	async submit(data) {
 		/* Create a rich embed using the provided score data. */
-		let message = this.generateEmbed(data);
+		let message = this.config.rich_embed.enabled ? this.generateEmbed(data): undefined;
 		
-		if (Ameto.plugins.scorecard !== undefined) {
+		if (Ameto.plugins.scorecard !== undefined && this.config.scorecard.enabled === true) {
 			/* Store the image in the configured folder relative to the process
 			   working directory, then attach it to the rich embed. */
 			try {
-				let style = this.config.scorecard.style;
+				let style = this.config.scorecard.settings.style;
 
 				var cardimg = path.resolve(
-					this.config.scorecard.output + path.sep + Date.now() + '.png'
+					this.config.scorecard.settings.directory + path.sep + Date.now() + '.png'
 				);
+
+				/* Append additional configuration for use in the scorecard. */
+				data.options = this.config.scorecard.options || {};
 
 				await Ameto.plugins.scorecard.generate(style, data, cardimg);
 
 				/* If 'scorecard_only' is defined, scrap all the current embed
 				   data and only send the image. */
-				if (this.config.embed.scorecard_only === true)
-					message = new discordjs.Attachment(cardimg);
-				else
+				if (message !== undefined) 
 					message.attachFile(cardimg);
+				else
+					message = new discordjs.Attachment(cardimg);
 			} catch (error) {
 				console.error(`Failed to generate scorecard image. (${error})`);
 			}
 		}
 
-		/* Finally, send the embed to the target channel. */
-		await channel.send(message);
+		/* Finally, send the embed to the pre-defined channels. */
+		for (let i = this.config.client.channels.length - 1; i >= 0; i--) {
+			/* Ensure the target channel is valid. */
+			let channel_id = this.config.client.channels[i].id;
+			let channel = this.client.channels.get(channel_id);
 
-		if (cardimg !== undefined && this.config.scorecard.persistent !== true)
+			if (!channel || !message)
+				continue;
+
+			await channel.send(message);
+		}
+
+		if (cardimg !== undefined && this.config.scorecard.settings.persistent !== true)
 			await unlinkAsync(cardimg);
 	}
 }

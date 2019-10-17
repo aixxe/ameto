@@ -1,5 +1,7 @@
 @echo off
 
+cd /d %~dp0
+
 node.exe -v >nul 2>&1
 if %ERRORLEVEL%==9009 goto :error
 
@@ -15,8 +17,12 @@ rmdir /S /Q .\plugins\scorecard\etc
 
 :run
 node ameto.js
-exit /B 0
+goto exit
 
 :error
 echo Node.js runtime not found in path.
+echo.
+
+:exit
+pause
 exit /B 1

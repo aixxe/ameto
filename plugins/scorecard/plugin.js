@@ -11,7 +11,7 @@ const unlinkAsync = promisify(fs.unlink);
 const readFileAsync = promisify(fs.readFile);
 const writeFileAsync = promisify(fs.writeFile);
 
-const ASSETS_BASEDIR = __dirname + path.sep + 'assets';
+const ASSETS_BASEDIR = path.resolve(__dirname, 'assets');
 
 class Scorecard {
 	constructor() {
@@ -21,15 +21,17 @@ class Scorecard {
 
 	async generate(style, data, output) {
 		/* Read the contents of the template HTML file once. */
-		let basedir = ASSETS_BASEDIR + path.sep + style + path.sep;
+		let basedir = path.resolve(ASSETS_BASEDIR, style);
 
 		this.template = await readFileAsync(
-			basedir + 'template.html', 'utf8');
+			path.resolve(basedir, 'template.html'), 'utf8'
+		);
 
 		/* Generate a temporary file with the script placeholder replaced with
 		   the actual score data. Allows us to use the 'load' event later. */
-		let cardfile = basedir + Date.now() + '.html';
+		let cardfile = path.resolve(basedir, Date.now() + '.html');
 		let scoredata = JSON.stringify(data);
+
 		let script = `let scoredata = ${scoredata}; setup(scoredata);`;
 		
 		await writeFileAsync(cardfile,

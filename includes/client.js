@@ -2,7 +2,6 @@
 
 const os = require('os');
 const net = require('net');
-const path = require('path');
 const util = require('./util');
 const {inspect} = require('util');
 const EventEmitter = require('events');
