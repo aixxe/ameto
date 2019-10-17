@@ -19,6 +19,7 @@ class Client extends EventEmitter {
 		this.buffer = "";
 
 		this.reconnectTimer = false;
+		this.initialConnection = true;
 
 		this.socket = new net.Socket();
 		this.socket.setEncoding('utf8');
@@ -54,7 +55,11 @@ class Client extends EventEmitter {
 		if (false !== this.reconnectTimer)
 			return;
 
-		console.log(`Connection to server lost, attempting to reconnect..`);
+		if (this.initialConnection)
+			this.initialConnection = false;
+		else
+			console.log(`Connection to server lost, attempting to reconnect..`);
+
 		this.reconnectTimer = setInterval(this.connect.bind(this), 5000);
 	}
 
