@@ -1,5 +1,6 @@
 'use strict';
 
+const fs = require('fs');
 const os = require('os');
 const net = require('net');
 const util = require('./util');
@@ -14,7 +15,7 @@ class Client extends EventEmitter {
 
 		this.host = config.host;
 		this.port = config.port;
-		this.debug = (config.debug === true);
+		this.log = config.log;
 
 		this.buffer = "";
 
@@ -63,6 +64,18 @@ class Client extends EventEmitter {
 		this.reconnectTimer = setInterval(this.connect.bind(this), 5000);
 	}
 
+	matchEventFilter(event, log) {
+		if (!log.enabled)
+			return false;
+
+		/* Log everything if no explicit 'events' array is set. */
+		if (log.events === undefined)
+			return true;
+
+		/* Ensure this event exists in the filter array. */
+		return (log.events.indexOf(event) !== -1);
+	}
+
 	recv(data) {
 		/* Append received data to the buffer. */
 		this.buffer += data.toString();
@@ -80,8 +93,17 @@ class Client extends EventEmitter {
 				if (ev.data.music !== undefined)
 					util.convertMusicInfo(ev.data.music);
 
-				if (this.debug)
+				/* Handle event logging to file and/or stdout. */
+				if (this.matchEventFilter(ev.event, this.log.stdout)) {
 					console.log(inspect(ev, { colors: true, depth: null }));
+				}
+
+				if (this.matchEventFilter(ev.event, this.log.file)) {
+					const timestamp = new Date().toISOString().split('T')[0];
+					const event_json = JSON.stringify(ev, null, 4);
+
+					fs.appendFileSync(`./logs/${timestamp}.log`, event_json + "\n");
+				}
 
 				/* Fire the event to be handled by plugins and so on. */
 				this.emit(ev.event, ev.data);
