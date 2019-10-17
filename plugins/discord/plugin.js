@@ -423,16 +423,22 @@ class Discord {
 			/* Store the image in the configured folder relative to the process
 			   working directory, then attach it to the rich embed. */
 			try {
-				let style = this.config.scorecard.settings.style;
+				const basedir = this.config.scorecard.settings.directory;
+				const style = this.config.scorecard.settings.style;
 
-				var cardimg = path.resolve(
-					this.config.scorecard.settings.directory + path.sep + Date.now() + '.png'
-				);
+				/* Determine full path of local card image. */
+				var cardimg = path.resolve(basedir + path.sep + Date.now());
+				const quality = this.config.scorecard.settings.quality;
+
+				if (this.config.scorecard.settings.quality < 100)
+					cardimg += '.jpg';
+				else
+					cardimg += '.png';
 
 				/* Append additional configuration for use in the scorecard. */
 				data.options = this.config.scorecard.options || {};
 
-				await Ameto.plugins.scorecard.generate(style, data, cardimg);
+				await Ameto.plugins.scorecard.generate(style, data, cardimg, quality);
 
 				/* If 'scorecard_only' is defined, scrap all the current embed
 				   data and only send the image. */

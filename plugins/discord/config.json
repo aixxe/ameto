@@ -16,7 +16,8 @@
 		"settings": {
 			"style": "base",
 			"directory": "cards",
-			"persistent": true
+			"persistent": true,
+			"quality": 100
 		},
 		"options": {
 		}

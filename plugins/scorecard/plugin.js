@@ -19,7 +19,7 @@ class Scorecard {
 		this.author = "aixxe";
 	}
 
-	async generate(style, data, output) {
+	async generate(style, data, output, quality = 100) {
 		/* Read the contents of the template HTML file once. */
 		let basedir = path.resolve(ASSETS_BASEDIR, style);
 
@@ -64,7 +64,11 @@ class Scorecard {
 			height: (!isNaN(height) && height > 0) ? height: 512,
 		});
 
-		await page.screenshot({path: output, omitBackground: true});
+		await page.screenshot({
+			path: output,
+			quality: (quality === 100) ? undefined: quality,
+			omitBackground: true
+		});
 
 		/* Remove the temporary scorecard HTML file and close the browser. */
 		await unlinkAsync(cardfile);
