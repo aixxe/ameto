@@ -19,9 +19,6 @@
 			"persistent": true
 		},
 		"options": {
-			"auto_max_pacemaker": true,
-			"hide_score_differential": false,
-			"hide_dead_frame": false
 		}
 	},
 	"rich_embed": {
