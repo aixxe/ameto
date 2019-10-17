@@ -1,7 +1,7 @@
 /*
 
 	ameto - reference client implementation for shuriken.
-	Copyright (C) 2018, aixxe. <me@aixxe.net>
+	Copyright (C) 2019, aixxe. <me@aixxe.net>
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy
 	of this software and associated documentation files (the "Software"), to deal

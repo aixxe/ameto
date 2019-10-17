@@ -28,16 +28,11 @@ util.convertMusicInfo = (data) => {
 	data.genre = genre.toString('utf8');
 
 	if (Ameto.data.music[id] !== undefined) {
-		let override_data = Ameto.data.music[id];
+		const override_data = Ameto.data.music[id];
 
-		if ('title' in override_data)
-			data.title = override_data.title;
-
-		if ('artist' in override_data)
-			data.artist = override_data.artist;
-
-		if ('genre' in override_data)
-			data.genre = override_data.genre;
+		Object.keys(override_data).forEach(key => {
+			data[key] = override_data[key];
+		});
 	}
 }
 
