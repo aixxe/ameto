@@ -1,15 +1,12 @@
 'use strict';
 
-const fs = require('fs');
+const fs = require('fs').promises;
 const path = require('path');
 const mkdirp = require('mkdirp');
 const {promisify} = require('util');
 const puppeteer = require('puppeteer');
 
 const mkdirpAsync = promisify(mkdirp);
-const unlinkAsync = promisify(fs.unlink);
-const readFileAsync = promisify(fs.readFile);
-const writeFileAsync = promisify(fs.writeFile);
 
 const ASSETS_BASEDIR = path.resolve(__dirname, 'assets');
 
@@ -23,7 +20,7 @@ class Scorecard {
 		/* Read the contents of the template HTML file once. */
 		let basedir = path.resolve(ASSETS_BASEDIR, style);
 
-		this.template = await readFileAsync(
+		this.template = await fs.readFile(
 			path.resolve(basedir, 'template.html'), 'utf8'
 		);
 
@@ -34,7 +31,7 @@ class Scorecard {
 
 		let script = `let scoredata = ${scoredata}; setup(scoredata);`;
 		
-		await writeFileAsync(cardfile,
+		await fs.writeFile(cardfile,
 			this.template.replace('/* @script */', script), 'utf8');
 
 		await mkdirpAsync(path.dirname(output));
@@ -71,7 +68,7 @@ class Scorecard {
 		});
 
 		/* Remove the temporary scorecard HTML file and close the browser. */
-		await unlinkAsync(cardfile);
+		await fs.unlink(cardfile);
 		await browser.close();
 
 		return true;

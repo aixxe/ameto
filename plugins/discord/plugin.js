@@ -1,13 +1,10 @@
 'use strict';
 
-const fs = require('fs');
+const fs = require('fs').promises;
 const path = require('path');
-const {promisify} = require('util');
 const discordjs = require('discord.js');
 
 const lib = require('./includes/util');
-
-const unlinkAsync = promisify(fs.unlink);
 
 class Discord {
 	constructor() {
@@ -464,7 +461,7 @@ class Discord {
 		}
 
 		if (cardimg !== undefined && this.config.scorecard.settings.persistent !== true)
-			await unlinkAsync(cardimg);
+			await fs.unlink(cardimg);
 	}
 }
 

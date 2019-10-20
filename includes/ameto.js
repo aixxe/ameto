@@ -1,15 +1,10 @@
 'use strict';
 
-const fs = require('fs');
+const fs = require('fs').promises;
 const path = require('path');
-const {promisify} = require('util');
 
 const util = require('./util');
 const shuriken = require('./client');
-
-const lstatAsync = promisify(fs.lstat);
-const existsAsync = promisify(fs.exists);
-const readdirAsync = promisify(fs.readdir);
 
 /* Print more detailed errors on unhandled Promise rejection. */
 process.on('unhandledRejection', console.error);
@@ -43,7 +38,7 @@ Ameto.init = async callback => {
 	let basedir = process.cwd() + path.sep + 'plugins';
 
 	try {
-		plugins = await readdirAsync(basedir);
+		plugins = await fs.readdir(basedir);
 
 		if (plugins.length === 0)
 			return util.fatal('No usable plugins found.');
@@ -59,7 +54,7 @@ Ameto.init = async callback => {
 		/* First ensure we're looking at a directory, then include the plugin
 		   entry point file. */
 		try {
-			if (!(await lstatAsync(plugindir)).isDirectory())
+			if (!(await fs.lstat(plugindir)).isDirectory())
 				continue;
 
 			plugin = require(plugindir + path.sep + 'plugin.js');
