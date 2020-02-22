@@ -50,16 +50,20 @@ class Client extends EventEmitter {
 
 		clearInterval(this.reconnectTimer);
 		this.reconnectTimer = false;
+
+		this.emit('connected');
 	}
 
 	reconnect() {
 		if (false !== this.reconnectTimer)
 			return;
 
-		if (this.initialConnection)
+		if (this.initialConnection) {
 			this.initialConnection = false;
-		else
+		} else {
 			console.log(`Connection to server lost, attempting to reconnect..`);
+			this.emit('disconnected');
+		}
 
 		this.reconnectTimer = setInterval(this.connect.bind(this), 5000);
 	}
