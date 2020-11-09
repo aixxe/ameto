@@ -19,7 +19,7 @@ Ameto.init = async callback => {
 		let musicdata_filename = process.cwd() + path.sep + 'data' + path.sep + 'music.json';
 		
 		console.log(`Reading configuration file '${config_filename}'..`);
-		console.log(`Reading music data file '${config_filename}'..`);
+		console.log(`Reading music data file '${musicdata_filename}'..`);
 
 		Ameto.config = require(config_filename);
 		Ameto.data.music = require(musicdata_filename);
