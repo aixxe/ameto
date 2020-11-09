@@ -41,7 +41,7 @@ Ameto.init = async callback => {
 		plugins = await fs.readdir(basedir);
 
 		if (plugins.length === 0)
-			return util.fatal('No usable plugins found.');
+			console.log('Warning: No plugins were loaded.');
 	} catch (error) {
 		return util.fatal(`Failed to read directory. (${basedir})`);
 	}
